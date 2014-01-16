@@ -36,9 +36,9 @@ if [ ! -f "${TAR_FILE}" ]; then
 fi
 
 # The top-level directory that _contains_ src/.
-BASE_SRC_DIR=`readlink -f "${GBP_GIT_DIR}/../../.."`
+BASE_SRC_DIR=`readlink -f "${GBP_GIT_DIR}/../.."`
 if [ $? -ne 0 ]; then
-    echo "${GBP_GIT_DIR}/../../.. does not seem to be a valid path. Aborting."
+    echo "${GBP_GIT_DIR}/../.. does not seem to be a valid path. Aborting."
     exit 1
 fi
 
@@ -47,13 +47,29 @@ rm -v "${TAR_FILE}"
 
 echo "Creating a new ${TAR_FILE} from ${BASE_SRC_DIR}/src"
 
+CREATE_LINK=
+if [ ! -d ${BASE_SRC_DIR}/src ]; then
+ echo ln -s ${BASE_SRC_DIR}/crosswalk ${BASE_SRC_DIR}/src
+ ln -s ${BASE_SRC_DIR}/crosswalk ${BASE_SRC_DIR}/src
+ CREATE_LINK=TRUE
+fi
+
 # The --transform parameter is used to prepend all archive members with
 # crosswalk/ so they all share a common root. Note it is crosswalk/, without
 # any version numbers, so that any build files in an external directory
 # referring to a source file does not need to be updated just because of a
 # version bump.
-tar --update --file "${TAR_FILE}" \
+tar --dereference \
+    --update --file "${TAR_FILE}" \
     --exclude-vcs --exclude=native_client --exclude=LayoutTests \
-    --exclude=src/out --directory="${BASE_SRC_DIR}" \
+    --exclude=src/out --exclude=src/packaging/crosswalk* --directory="${BASE_SRC_DIR}" \
     --transform="s:^:crosswalk/:S" \
     src
+
+if [ ! -z ${CREATE_LINK}  ]; then 
+ rm ${BASE_SRC_DIR}/src
+fi
+
+
+
+    
